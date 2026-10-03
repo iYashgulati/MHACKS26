@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -m Airlock.hook --provider claude --output hook",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -6,18 +6,14 @@ from Airlock.core.evaluator import Decision
 from Airlock.core.policy import DecisionStatus
 
 
-class ClaudeAdapter(ProviderAdapter):
-    provider = "claude"
+class CodexAdapter(ProviderAdapter):
+    provider = "codex"
 
     def extract(self, payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
-        return extract_common(payload, ("tool_name",), ("tool_input",))
+        return extract_common(payload, ("tool_name", "type"), ("tool_input", "input"))
 
     def hook_response(self, decision: Decision) -> dict[str, Any]:
-        permission = {
-            DecisionStatus.ALLOW: "allow",
-            DecisionStatus.REQUIRE_APPROVAL: "ask",
-            DecisionStatus.BLOCK: "deny",
-        }[decision.status]
+        permission = "allow" if decision.status is DecisionStatus.ALLOW else "deny"
         return {
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
@@ -27,5 +23,5 @@ class ClaudeAdapter(ProviderAdapter):
         }
 
 
-def normalize_claude(data: dict[str, Any]) -> Action:
-    return ClaudeAdapter().normalize(data)
+def normalize_codex(data: dict[str, Any]) -> Action:
+    return CodexAdapter().normalize(data)

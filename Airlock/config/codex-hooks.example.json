@@ -1,0 +1,17 @@
+{
+  "description": "Route supported Codex tool calls through Airlock.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -m Airlock.hook --provider codex --output hook --approval terminal",
+            "statusMessage": "Checking Airlock policy"
+          }
+        ]
+      }
+    ]
+  }
+}

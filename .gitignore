@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.airlock/
+*.egg-info/
+.venv/
+node_modules/
+.DS_Store

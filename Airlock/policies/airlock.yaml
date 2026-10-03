@@ -1,21 +1,113 @@
-protected_paths:
-  - ".env"
-  - ".ssh/**"
-  - "*.pem"
-  - "key"
+version: 1
 
-approval_commands:
-  - "npm install"
-  - "pip install"
-  - "git push"
-  - "sudo install"
+defaults:
+  unknown_action: require_approval
+  hook_failure: block
+  approval_timeout_seconds: 120
 
-blocked_commands:
-  - "sudo"
-  - "rm -rf /"
-  - "git push --force"
-  - "git reset --hard"
+thresholds:
+  require_approval: 30
+  block: 100
 
-risk_thresholds:
-  approval: 30
-  block: 80
+rules:
+  - id: protected-secret-files
+    description: Access to a protected secret or credential file is prohibited
+    effect: block
+    score: 100
+    match:
+      operation_in: [read, write, shell]
+      paths_any: [".env", ".env.*", ".ssh/**", "**/.ssh/**", "*.pem", "*.key", "credentials.json"]
+
+  - id: force-push
+    description: Force-pushing a remote branch is prohibited
+    effect: block
+    score: 100
+    match: {operation: shell, fact: force_push}
+
+  - id: destructive-root-delete
+    description: Recursive deletion of a root or home directory is prohibited
+    effect: block
+    score: 100
+    match: {operation: shell, fact: recursive_delete_root}
+
+  - id: recursive-delete
+    description: Recursive deletion requires human approval
+    effect: require_approval
+    score: 50
+    match: {operation: shell, fact: recursive_delete}
+
+  - id: hard-reset
+    description: Destructive Git history reset is prohibited
+    effect: block
+    score: 100
+    match: {operation: shell, fact: hard_reset}
+
+  - id: privilege-escalation
+    description: Privilege escalation is prohibited
+    effect: block
+    score: 100
+    match: {operation: shell, fact: privilege_escalation}
+
+  - id: download-and-execute
+    description: Downloading remote content directly into a shell is prohibited
+    effect: block
+    score: 100
+    match: {operation: shell, fact: download_and_execute}
+
+  - id: dependency-install
+    description: Installing a third-party dependency requires approval
+    effect: require_approval
+    score: 40
+    match: {operation: shell, fact: dependency_install}
+
+  - id: git-push
+    description: Mutating a remote Git repository requires approval
+    effect: require_approval
+    score: 40
+    match: {operation: shell, fact: git_push}
+
+  - id: production-operation
+    description: Deployment, release, or publishing operations require approval
+    effect: require_approval
+    score: 70
+    match: {operation: shell, fact: production_command}
+
+  - id: unknown-network-destination
+    description: Network access to a non-allowlisted host requires approval
+    effect: require_approval
+    score: 30
+    match:
+      facts_any: [external_network]
+      url_host_not_in: [github.com, api.github.com, registry.npmjs.org, pypi.org, files.pythonhosted.org]
+
+  - id: large-change
+    description: Modifying more than ten files requires approval
+    effect: require_approval
+    score: 40
+    match: {operation: write, path_count_gt: 10}
+
+  - id: source-edit
+    description: Source and test files are inside the normal edit boundary
+    effect: allow
+    score: 0
+    match: {operation: write, paths_any: ["src/**", "tests/**"]}
+
+  - id: normal-read
+    description: Reading repository files is normally allowed
+    effect: allow
+    score: 0
+    match: {operation: read}
+
+  - id: normal-list
+    description: Listing or searching repository files is allowed
+    effect: allow
+    score: 0
+    match: {operation: list}
+
+  - id: safe-shell-inspection
+    description: Every command segment is a known read-only or test operation
+    effect: allow
+    score: 0
+    match:
+      operation: shell
+      fact: safe_shell

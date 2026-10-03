@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "airlock-agent-guardrails"
+version = "0.1.0"
+description = "Provider-neutral runtime guardrails for coding agents"
+requires-python = ">=3.11"
+dependencies = ["PyYAML>=6.0"]
+
+[project.scripts]
+airlock = "Airlock.hook.hook:main"
+
+[tool.setuptools.packages.find]
+include = ["Airlock*"]

@@ -1,5 +1,5 @@
-from adapters.claude import normalize_claude
-from core.evaluator import evaluate
+from Airlock.adapters.claude import normalize_claude
+from Airlock.core.evaluator import evaluate
 
 fake_request = {
     "tool_name": "Bash",
@@ -16,4 +16,4 @@ print(action)
 decision = evaluate(action)
 
 print("\nDECISION:")
-print(decision)
+print(decision.to_dict())
