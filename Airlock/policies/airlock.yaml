@@ -1,0 +1,21 @@
+protected_paths:
+  - ".env"
+  - ".ssh/**"
+  - "*.pem"
+  - "key"
+
+approval_commands:
+  - "npm install"
+  - "pip install"
+  - "git push"
+  - "sudo install"
+
+blocked_commands:
+  - "sudo"
+  - "rm -rf /"
+  - "git push --force"
+  - "git reset --hard"
+
+risk_thresholds:
+  approval: 30
+  block: 80
