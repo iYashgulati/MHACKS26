@@ -20,7 +20,7 @@ const routine: CompletionBody = {
 describe("formatCompletion", () => {
   test("includes Claude's actual final terminal response", () => {
     expect(formatCompletion(routine)).toBe(
-      "Complete\n\nBased on git status, the build directory does not exist.",
+      "Agent turn finished\n\nBased on git status, the build directory does not exist.",
     );
   });
 
@@ -31,7 +31,7 @@ describe("formatCompletion", () => {
       reasons: ["touched auth.ts"],
       diffstat: "21 files changed, +713/-45",
     })).toBe(
-      "Complete\n\nBased on git status, the build directory does not exist.",
+      "Agent turn finished\n\nBased on git status, the build directory does not exist.",
     );
   });
 

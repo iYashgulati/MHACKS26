@@ -31,6 +31,6 @@ export function formatCompletion(body: CompletionBody): string {
   // The payload's diff describes the whole working tree relative to HEAD,
   // not necessarily changes made during this turn. Do not present it as a
   // task-specific result.
-  const label = completionNeedsInput(body) ? "Needs input" : "Complete";
+  const label = completionNeedsInput(body) ? "Needs input" : "Agent turn finished";
   return `${label}\n\n${finalMessage.slice(0, 3500)}`;
 }

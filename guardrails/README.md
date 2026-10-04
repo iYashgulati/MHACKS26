@@ -17,7 +17,8 @@ project hooks then:
 - accept `yes`, `no`, questions, or redirects such as `no, clear node_modules instead`;
 - execute redirects as a queued follow-up turn and report that turn's result,
   rather than relying on Claude to infer the redirect from a denial message;
-- reply with `Complete` and Claude's final response when Claude finishes.
+- reply with `Agent turn finished` and Claude's final response when Claude stops,
+  so a lifecycle notification cannot be confused with an approved action.
 - label Claude follow-up questions as `Needs input` and resume that exact Claude
   session when the user replies by iMessage.
 - start a new Claude task in the project when a phone message is not associated
