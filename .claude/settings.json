@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PROJECT_DIR}/.venv/bin/python\" -m Airlock.hook --provider claude --approval photon --output hook",
+            "timeout": 660
+          }
+        ]
+      }
+    ]
+  }
+}

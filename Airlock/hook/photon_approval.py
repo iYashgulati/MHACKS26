@@ -11,7 +11,7 @@ from Airlock.hook.approval import ApprovalProvider, ApprovalResolution
 
 
 PHOTON_BASE = "http://localhost:8787"
-REQUEST_TIMEOUT = 140
+REQUEST_TIMEOUT = 630
 
 
 def _summarize(action: Action) -> str:

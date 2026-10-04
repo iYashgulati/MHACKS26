@@ -13,7 +13,7 @@ type Pending = {
   timer: ReturnType<typeof setTimeout>;
 };
 
-const TIMEOUT_MS = 120_000;
+const TIMEOUT_MS = 10 * 60 * 1000;
 const pending = new Map<string, Pending>();
 const history: Array<{ action: string; decision: Decision }> = [];
 let activeSpace: any = null;
@@ -62,23 +62,39 @@ Bun.serve({
       return new Response("not found", { status: 404 });
     }
 
-    const body = await req.json() as { action: string; reason?: string; task?: string };
+    const body = await req.json() as {
+      action: string;
+      reason?: string;
+      task?: string;
+    };
 
     if (!activeSpace) {
-      return Response.json({ decision: "deny", why: "no conversation open" });
+      return Response.json({
+        decision: "deny",
+        why: "no conversation open",
+      });
     }
-    if (pending.has(activeSpace.id)) {
-      return Response.json({ decision: "deny", why: "another request pending" });
+
+    const approvalSpace = activeSpace;
+    const approvalSpaceId = approvalSpace.id;
+
+    if (pending.has(approvalSpaceId)) {
+      return Response.json({
+        decision: "deny",
+        why: "another request pending",
+      });
     }
 
     const decision = await new Promise<Decision>((resolve) => {
       const timer = setTimeout(async () => {
-        pending.delete(activeSpace.id);
-        await activeSpace.send("No response in 2 minutes — denied by default.");
+        pending.delete(approvalSpaceId);
+        await approvalSpace.send(
+          "No response in 10 minutes — denied by default."
+        );
         resolve("deny");
       }, TIMEOUT_MS);
 
-      pending.set(activeSpace.id, {
+      pending.set(approvalSpaceId, {
         action: body.action,
         reason: body.reason ?? "",
         task: body.task ?? "",
@@ -86,7 +102,7 @@ Bun.serve({
         timer,
       });
 
-      activeSpace.send(
+      approvalSpace.send(
         `Agent wants to run:\n\n${body.action}\n\n` +
         `${body.reason ?? ""}\n` +
         `Your task was: "${body.task || "unknown"}"\n\n` +
@@ -132,6 +148,9 @@ async function classifyReply(text: string, p: Pending) {
 }
 
 for await (const [space, message] of convo.messages) {
+  if (message.direction === "outbound") continue;
+  if (message.platform !== "imessage") continue;
+
   activeSpace = space;
   if (message.content.type !== "text") continue;
 
