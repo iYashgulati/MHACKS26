@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from enum import StrEnum
 import sys
 
@@ -12,18 +13,25 @@ class ApprovalResolution(StrEnum):
     APPROVED = "APPROVED"
     DENIED = "DENIED"
     EXPIRED = "EXPIRED"
+    REDIRECTED = "REDIRECTED"
+
+
+@dataclass(frozen=True)
+class ApprovalResult:
+    resolution: ApprovalResolution
+    redirect: str | None = None
 
 
 class ApprovalProvider(ABC):
     @abstractmethod
-    def request(self, action: Action, decision: Decision) -> ApprovalResolution:
+    def request(self, action: Action, decision: Decision) -> ApprovalResult:
         raise NotImplementedError
 
 
 class TerminalApprovalProvider(ApprovalProvider):
     """Local stand-in for Photon that does not consume hook JSON from stdin."""
 
-    def request(self, action: Action, decision: Decision) -> ApprovalResolution:
+    def request(self, action: Action, decision: Decision) -> ApprovalResult:
         summary = action.command or ", ".join(action.all_paths) or action.tool_name or "unknown"
         message = (
             "\nAIRLOCK APPROVAL\n"
@@ -39,8 +47,8 @@ class TerminalApprovalProvider(ApprovalProvider):
                 response = terminal.readline().strip().lower()
         except OSError:
             print("Airlock could not open /dev/tty; denying approval", file=sys.stderr)
-            return ApprovalResolution.DENIED
-        return (
+            return ApprovalResult(ApprovalResolution.DENIED)
+        return ApprovalResult(
             ApprovalResolution.APPROVED
             if response in {"y", "yes", "approve"}
             else ApprovalResolution.DENIED

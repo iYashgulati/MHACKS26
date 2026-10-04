@@ -80,6 +80,12 @@ rules:
       facts_any: [external_network]
       url_host_not_in: [github.com, api.github.com, registry.npmjs.org, pypi.org, files.pythonhosted.org]
 
+  - id: unparseable-shell
+    description: Shell syntax could not be safely analyzed
+    effect: require_approval
+    score: 30
+    match: {operation: shell, fact: unparseable_shell}
+
   - id: large-change
     description: Modifying more than ten files requires approval
     effect: require_approval

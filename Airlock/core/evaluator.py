@@ -64,7 +64,12 @@ class PolicyEngine:
         )
         risk = min(999, sum(item.score for item in matches))
 
-        if any(item.effect is DecisionStatus.BLOCK for item in matches) or risk >= self.policy.block_threshold:
+        # A zero score is the policy's explicit signal that an action is safe
+        # enough to proceed without interrupting the user. This also covers
+        # ordinary commands that do not need a dedicated allow rule.
+        if risk == 0:
+            status = DecisionStatus.ALLOW
+        elif any(item.effect is DecisionStatus.BLOCK for item in matches) or risk >= self.policy.block_threshold:
             status = DecisionStatus.BLOCK
         elif (
             any(item.effect is DecisionStatus.REQUIRE_APPROVAL for item in matches)
