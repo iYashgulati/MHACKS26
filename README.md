@@ -19,7 +19,7 @@ resolve promise → agent proceeds or stops
 
 Claude Code's `PreToolUse` hook allows for the classification of certain hooks and allows some hooks to be denied when needed.
 
-Shell commands are parsed with `shlex` — never executed — and reduced to facts like `force_push`, `recursive_delete`, `privilege_escalation`, `download_and_execute`. Every rule in `policies/airlock.yaml` is evaluated based on risk score and a decision of  require approval, or block is reached.
+Shell commands are parsed with `shlex` — never executed — and reduced to facts like `force_push`, `recursive_delete`, `privilege_escalation`, `download_and_execute`. Every rule in `policies/airlock.yaml` is evaluated based on risk score and a decision of  require approval, or block is reached. Policies contains our deterministic algorithm for common hooks
 
 Bridge (TypeScript/Bun). Holds a Spectrum connection to iMessage. On "require approval" the Python side POSTs `/approval` and that HTTP request blocks.
 
