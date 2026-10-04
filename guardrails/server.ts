@@ -2,8 +2,13 @@ import { Spectrum } from "spectrum-ts";
 import { terminal } from "spectrum-ts/providers/terminal";
 import { imessage } from "spectrum-ts/providers/imessage";
 import Anthropic from "@anthropic-ai/sdk";
+import { fileURLToPath } from "node:url";
 import { classifyObviousReply, type ReplyIntent } from "./reply";
-import { formatCompletion, type CompletionBody } from "./completion";
+import {
+  completionNeedsInput,
+  formatCompletion,
+  type CompletionBody,
+} from "./completion";
 
 type Decision = "allow" | "deny";
 type Resolution = { decision: Decision; redirect?: string };
@@ -17,7 +22,13 @@ type Pending = {
   timer: ReturnType<typeof setTimeout>;
 };
 
+type ClaudeSession = {
+  sessionId: string;
+  cwd: string;
+};
+
 const TIMEOUT_MS = 10 * 60 * 1000;
+const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
 const pending = new Map<string, Pending>();
 const history: Array<{ action: string; decision: HistoryDecision }> = [];
 const completionKeys = new Set<string>();
@@ -25,6 +36,8 @@ const processedMessageIds = new Set<string>();
 const recentInboundReplies = new Map<string, number>();
 let activeSpace: any = null;
 let completionReplyTarget: any = null;
+let awaitingClaudeSession: ClaudeSession | null = null;
+let phoneClaudeRunning = false;
 
 const anthropic = new Anthropic();
 
@@ -92,6 +105,14 @@ Bun.serve({
       // The Stop hook already provides Claude's final response. Forward it
       // directly so completion delivery never waits on another model call.
       const completionText = formatCompletion(body);
+      if (completionNeedsInput(body) && body.sessionId && body.cwd) {
+        awaitingClaudeSession = {
+          sessionId: body.sessionId,
+          cwd: body.cwd,
+        };
+      } else {
+        awaitingClaudeSession = null;
+      }
       const replyTarget = completionReplyTarget;
       if (replyTarget) {
         completionReplyTarget = null;
@@ -224,6 +245,46 @@ async function classifyReply(text: string, p: Pending): Promise<ReplyIntent> {
   }
 }
 
+async function runClaudeFromPhone(
+  session: ClaudeSession | null,
+  prompt: string,
+  replyMessage: any,
+): Promise<void> {
+  const executable = process.env.CLAUDE_BIN || "claude";
+  const args = session
+    ? [executable, "--resume", session.sessionId, "--print", prompt]
+    : [executable, "--print", prompt];
+  try {
+    const child = Bun.spawn(
+      args,
+      {
+        cwd: session?.cwd || PROJECT_ROOT,
+        env: globalThis.process.env,
+        stdout: "pipe",
+        stderr: "pipe",
+      },
+    );
+    const [stdout, stderr, exitCode] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ]);
+    if (exitCode !== 0) {
+      console.error("Claude resume failed:", stderr || stdout);
+      if (completionReplyTarget === replyMessage) completionReplyTarget = null;
+      await replyMessage.reply(
+        `Could not continue Claude's session${stderr.trim() ? `: ${stderr.trim().slice(0, 500)}` : "."}`,
+      );
+    }
+  } catch (error) {
+    console.error("Claude resume failed:", error);
+    if (completionReplyTarget === replyMessage) completionReplyTarget = null;
+      await replyMessage.reply("Could not continue Claude's session.");
+  } finally {
+    phoneClaudeRunning = false;
+  }
+}
+
 for await (const [space, message] of convo.messages) {
   if (message.direction === "outbound") continue;
   if (message.platform !== "imessage") continue;
@@ -265,10 +326,24 @@ for await (const [space, message] of convo.messages) {
   }
 
   if (!p) {
-    // Spectrum may emit a second representation of an approval reply after
-    // the first one has already resolved and removed the pending request.
-    // Unmatched messages are not actionable, so ignore them instead of
-    // producing a misleading "Nothing pending" reply.
+    if (awaitingClaudeSession) {
+      if (phoneClaudeRunning) continue;
+      const session = awaitingClaudeSession;
+      awaitingClaudeSession = null;
+      completionReplyTarget = message;
+      phoneClaudeRunning = true;
+      // Do not await this process: its tool calls may request approval through
+      // this same message loop, which must remain free to receive the reply.
+      void runClaudeFromPhone(session, replyText, message);
+      continue;
+    }
+
+    // With no approval or follow-up pending, treat the phone message as a new
+    // Claude task. Keep the loop free so any resulting approval can be handled.
+    if (phoneClaudeRunning) continue;
+    completionReplyTarget = message;
+    phoneClaudeRunning = true;
+    void runClaudeFromPhone(null, replyText, message);
     continue;
   }
 

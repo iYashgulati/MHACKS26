@@ -16,6 +16,10 @@ project hooks then:
 - request phone approval for risky `PreToolUse` actions;
 - accept `yes`, `no`, questions, or redirects such as `no, clear node_modules instead`;
 - reply with `Complete` and Claude's final response when Claude finishes.
+- label Claude follow-up questions as `Needs input` and resume that exact Claude
+  session when the user replies by iMessage.
+- start a new Claude task in the project when a phone message is not associated
+  with an approval or an existing `Needs input` response.
 
 The completion endpoint also understands `StopFailure`, but Claude Code 2.0.27
 does not support that hook event. Add it to `.claude/settings.json` after

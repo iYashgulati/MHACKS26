@@ -77,6 +77,7 @@ class CompletionHookTests(unittest.TestCase):
         )
         self.assertIsNotNone(payload)
         assert payload is not None
+        self.assertEqual(payload["cwd"], "/tmp")
         self.assertEqual(payload["significance"], "review")
         self.assertIn("210 lines changed", payload["reasons"])
 

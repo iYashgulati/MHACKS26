@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { formatCompletion, type CompletionBody } from "./completion";
+import {
+  completionNeedsInput,
+  formatCompletion,
+  type CompletionBody,
+} from "./completion";
 
 const routine: CompletionBody = {
   event: "Stop",
@@ -29,5 +33,14 @@ describe("formatCompletion", () => {
     })).toBe(
       "Complete\n\nBased on git status, the build directory does not exist.",
     );
+  });
+
+  test("marks a final question as waiting for user input", () => {
+    const question = {
+      ...routine,
+      assistantMessage: "Would you like to proceed with the deletion?",
+    };
+    expect(completionNeedsInput(question)).toBe(true);
+    expect(formatCompletion(question)).toStartWith("Needs input\n\n");
   });
 });

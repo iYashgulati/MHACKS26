@@ -57,6 +57,7 @@ def completion_payload(hook_input: dict[str, Any]) -> dict[str, Any] | None:
     payload: dict[str, Any] = {
         "event": event,
         "sessionId": str(hook_input.get("session_id", "")),
+        "cwd": str(root),
         "assistantMessage": assistant_message[:4000],
         "significance": significance,
         "reasons": reasons,
