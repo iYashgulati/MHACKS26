@@ -7,7 +7,7 @@ defaults:
 
 thresholds:
   require_approval: 30
-  block: 100
+  block: 1000
 
 rules:
   - id: protected-secret-files

@@ -1,0 +1,5 @@
+TypeError: imessage.user is not a function. (In 'imessage.user(MY_PHONE)', 'imessage.user' is undefined)
+
+TypeError: imessage.user is not a function. (In 'imessage.user(MY_PHONE)', 'imessage.user' is undefined)
+    at /Users/shreyas/Desktop/MHacks 2026/MHACKS26/guardrails/server.ts:30:31
+    at processTicksAndRejections (native:7:39)

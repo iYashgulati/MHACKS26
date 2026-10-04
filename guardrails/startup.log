@@ -1,0 +1,9 @@
+[tuichat] non-TTY detected — running in plain readline mode. Set TUICHAT_QUIET=1 to silence this notice.
+[info] [spectrum.lifecycle] INFO Spectrum started {
+  'spectrum.lifecycle.provider_count': 2,
+  'spectrum.lifecycle.providers': 'terminal,imessage',
+  'spectrum.lifecycle.telemetry': false
+}
+[error] imessage failed, see err.log
+[log] spectrum up
+[log] api on :8787
