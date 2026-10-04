@@ -4,7 +4,7 @@ Guardrails for AI coding agents. Approve risky actions from your phone instead o
 
 Claude Code can work unattended for an hour which can lead to unwanted changes and potential data leaks.
 
-#Architecture
+# Architecture
 
 Claude Code
 ↓ PreToolUse hook (stdin JSON)
@@ -23,7 +23,7 @@ Shell commands are parsed with `shlex` — never executed — and reduced to fac
 
 Bridge (TypeScript/Bun). Holds a Spectrum connection to iMessage. On "require approval" the Python side POSTs `/approval` and that HTTP request blocks.
 
-#Photon
+# Photon
 
 Allows user to communicate with claude API on their phone and get notifications about tasks and approve or reject tasks as needed.
 
