@@ -12,7 +12,7 @@ from Airlock.core.audit import JsonlAuditLog
 from Airlock.core.evaluator import Decision, PolicyEngine
 from Airlock.core.policy import DecisionStatus
 from Airlock.hook.approval import ApprovalResolution, TerminalApprovalProvider
-
+from Airlock.hook.photon_approval import PhotonApprovalProvider, notify_blocked
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_POLICY = PROJECT_ROOT / "Airlock" / "policies" / "airlock.yaml"
@@ -23,7 +23,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--provider", choices=("claude", "codex", "gemini"), required=True)
     parser.add_argument("--policy", type=Path, default=DEFAULT_POLICY)
     parser.add_argument("--output", choices=("normalized", "hook"), default="normalized")
-    parser.add_argument("--approval", choices=("none", "terminal"), default="none")
+    parser.add_argument("--approval", choices=("none", "terminal","photon"), default="none")
     parser.add_argument("--audit-log", type=Path, default=Path(".airlock/audit.jsonl"))
     parser.add_argument("--no-audit", action="store_true")
     return parser
@@ -40,8 +40,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         decision = PolicyEngine.from_file(args.policy).evaluate(action)
         resolution: str | None = None
 
-        if decision.status is DecisionStatus.REQUIRE_APPROVAL and args.approval == "terminal":
-            approval = TerminalApprovalProvider().request(action, decision)
+        if decision.status is DecisionStatus.REQUIRE_APPROVAL and args.approval != "none":
+            if args.approval == "photon":
+                provider = PhotonApprovalProvider()
+            else:
+                provider = TerminalApprovalProvider()
+            approval = provider.request(action, decision)
             resolution = approval.value
             if approval is ApprovalResolution.APPROVED:
                 decision = replace(
@@ -56,6 +60,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                     reasons=decision.reasons + ("Denied by user or approval unavailable",),
                 )
 
+        if decision.status is DecisionStatus.BLOCK and args.approval == "photon" and resolution is None:
+            notify_blocked(action, decision)
         if not args.no_audit:
             JsonlAuditLog(args.audit_log).append(action, decision, resolution)
 

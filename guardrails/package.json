@@ -1,0 +1,17 @@
+{
+  "name": "guardrails",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
+    "@spectrum-ts/imessage-local": "^12.10.1",
+    "spectrum-ts": "^12.10.1"
+  }
+}
