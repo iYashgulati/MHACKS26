@@ -60,8 +60,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                     reasons=decision.reasons
                     + (
                         "The user denied the original action and redirected you: "
-                        f"{approval.redirect}. Do not retry the original action; "
-                        "re-plan using the user's instruction.",
+                        f"{approval.redirect}. Do not retry the original action or "
+                        "execute the redirect in this turn; the phone bridge will "
+                        "resume the session with the user's instruction.",
                     ),
                 )
             else:

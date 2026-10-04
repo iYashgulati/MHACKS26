@@ -18,6 +18,8 @@ type Pending = {
   action: string;
   reason: string;
   task: string;
+  sessionId: string;
+  cwd: string;
   resolve: (result: Resolution) => void;
   timer: ReturnType<typeof setTimeout>;
 };
@@ -25,6 +27,11 @@ type Pending = {
 type ClaudeSession = {
   sessionId: string;
   cwd: string;
+};
+
+type QueuedRedirect = ClaudeSession & {
+  instruction: string;
+  replyMessage: any;
 };
 
 const TIMEOUT_MS = 10 * 60 * 1000;
@@ -38,6 +45,7 @@ let activeSpace: any = null;
 let completionReplyTarget: any = null;
 let awaitingClaudeSession: ClaudeSession | null = null;
 let phoneClaudeRunning = false;
+let queuedRedirect: QueuedRedirect | null = null;
 
 const anthropic = new Anthropic();
 
@@ -102,6 +110,21 @@ Bun.serve({
         return Response.json({ ok: false, why: "no conversation open" });
       }
 
+      // A redirect is a separate Claude turn. Suppress the original denied
+      // turn's explanation and run the user's replacement instruction after
+      // that turn has fully released the session.
+      if (
+        queuedRedirect &&
+        queuedRedirect.sessionId === body.sessionId
+      ) {
+        const redirect = queuedRedirect;
+        queuedRedirect = null;
+        awaitingClaudeSession = null;
+        // Let this Stop-hook response return before resuming the same session.
+        setTimeout(() => launchRedirectWhenIdle(redirect), 250);
+        return Response.json({ ok: true, redirected: true });
+      }
+
       // The Stop hook already provides Claude's final response. Forward it
       // directly so completion delivery never waits on another model call.
       const completionText = formatCompletion(body);
@@ -136,6 +159,8 @@ Bun.serve({
       action: string;
       reason?: string;
       task?: string;
+      sessionId?: string;
+      cwd?: string;
     };
 
     if (!activeSpace) {
@@ -168,6 +193,8 @@ Bun.serve({
         action: body.action,
         reason: body.reason ?? "",
         task: body.task ?? "",
+        sessionId: body.sessionId ?? "",
+        cwd: body.cwd ?? "",
         resolve,
         timer,
       });
@@ -285,6 +312,20 @@ async function runClaudeFromPhone(
   }
 }
 
+function launchRedirectWhenIdle(redirect: QueuedRedirect): void {
+  if (phoneClaudeRunning) {
+    setTimeout(() => launchRedirectWhenIdle(redirect), 100);
+    return;
+  }
+  completionReplyTarget = redirect.replyMessage;
+  phoneClaudeRunning = true;
+  void runClaudeFromPhone(
+    { sessionId: redirect.sessionId, cwd: redirect.cwd },
+    redirect.instruction,
+    redirect.replyMessage,
+  );
+}
+
 for await (const [space, message] of convo.messages) {
   if (message.direction === "outbound") continue;
   if (message.platform !== "imessage") continue;
@@ -361,6 +402,14 @@ for await (const [space, message] of convo.messages) {
       if (intent.decision === "redirect") {
         const instruction = String(intent.instruction).trim().slice(0, 1000);
         completionReplyTarget = message;
+        if (p.sessionId && p.cwd) {
+          queuedRedirect = {
+            sessionId: p.sessionId,
+            cwd: p.cwd,
+            instruction,
+            replyMessage: message,
+          };
+        }
         p.resolve({ decision: "deny", redirect: instruction });
         await message.reply(
           "Redirected — the original action was denied and Claude received your new instruction."

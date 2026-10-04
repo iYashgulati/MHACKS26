@@ -185,6 +185,7 @@ class RedirectTests(unittest.TestCase):
         self.assertEqual(output["permissionDecision"], "deny")
         self.assertIn("clear node_modules instead", output["permissionDecisionReason"])
         self.assertIn("Do not retry the original action", output["permissionDecisionReason"])
+        self.assertIn("phone bridge will", output["permissionDecisionReason"])
 
 
 if __name__ == "__main__":

@@ -15,6 +15,8 @@ project hooks then:
 
 - request phone approval for risky `PreToolUse` actions;
 - accept `yes`, `no`, questions, or redirects such as `no, clear node_modules instead`;
+- execute redirects as a queued follow-up turn and report that turn's result,
+  rather than relying on Claude to infer the redirect from a denial message;
 - reply with `Complete` and Claude's final response when Claude finishes.
 - label Claude follow-up questions as `Needs input` and resume that exact Claude
   session when the user replies by iMessage.

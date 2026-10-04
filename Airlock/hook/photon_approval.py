@@ -65,6 +65,8 @@ class PhotonApprovalProvider(ApprovalProvider):
             "action": _summarize(action),
             "reason": f"Risk score {decision.risk}. " + "; ".join(decision.reasons),
             "task": _last_user_message(action.raw_input.get("transcript_path")),
+            "sessionId": action.session_id or "",
+            "cwd": action.cwd or "",
         }
 
         try:
