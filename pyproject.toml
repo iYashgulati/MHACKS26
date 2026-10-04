@@ -7,10 +7,14 @@ name = "airlock-agent-guardrails"
 version = "0.1.0"
 description = "Provider-neutral runtime guardrails for coding agents"
 requires-python = ">=3.11"
-dependencies = ["PyYAML>=6.0"]
+dependencies = ["PyYAML>=6.0", "requests>=2.31"]
 
 [project.scripts]
 airlock = "Airlock.hook.hook:main"
+airlock-done = "Airlock.hook.notify_done:main"
 
 [tool.setuptools.packages.find]
 include = ["Airlock*"]
+
+[tool.setuptools.package-data]
+"Airlock" = ["policies/*.yaml"]
