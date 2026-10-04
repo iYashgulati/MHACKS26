@@ -100,12 +100,21 @@ class PolicyTests(unittest.TestCase):
         )
         self.assertEqual(decision.status, DecisionStatus.BLOCK)
 
-    def test_unknown_shell_command_requires_approval(self) -> None:
+    def test_zero_risk_shell_command_is_automatically_allowed(self) -> None:
+        _, decision = self.evaluate(
+            "codex",
+            {"tool_name": "Bash", "tool_input": {"command": "ls -la | grep build"}},
+        )
+        self.assertEqual(decision.risk, 0)
+        self.assertEqual(decision.status, DecisionStatus.ALLOW)
+
+    def test_unmatched_zero_risk_command_is_automatically_allowed(self) -> None:
         _, decision = self.evaluate(
             "codex",
             {"tool_name": "Bash", "tool_input": {"command": "frobnicate --all"}},
         )
-        self.assertEqual(decision.status, DecisionStatus.REQUIRE_APPROVAL)
+        self.assertEqual(decision.risk, 0)
+        self.assertEqual(decision.status, DecisionStatus.ALLOW)
 
     def test_dangerous_suffix_cannot_inherit_safe_allow(self) -> None:
         action, decision = self.evaluate(
@@ -161,6 +170,7 @@ class PolicyTests(unittest.TestCase):
             {"tool_name": "Bash", "tool_input": {"command": "echo 'unterminated"}},
         )
         self.assertIn("unparseable_shell", action.facts)
+        self.assertGreater(decision.risk, 0)
         self.assertEqual(decision.status, DecisionStatus.REQUIRE_APPROVAL)
 
 

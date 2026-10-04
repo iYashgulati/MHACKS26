@@ -46,12 +46,23 @@ def main(argv: Sequence[str] | None = None) -> int:
             else:
                 provider = TerminalApprovalProvider()
             approval = provider.request(action, decision)
-            resolution = approval.value
-            if approval is ApprovalResolution.APPROVED:
+            resolution = approval.resolution.value
+            if approval.resolution is ApprovalResolution.APPROVED:
                 decision = replace(
                     decision,
                     status=DecisionStatus.ALLOW,
-                    reasons=decision.reasons + ("Approved by user through terminal",),
+                    reasons=decision.reasons + ("Approved by user",),
+                )
+            elif approval.resolution is ApprovalResolution.REDIRECTED:
+                decision = replace(
+                    decision,
+                    status=DecisionStatus.BLOCK,
+                    reasons=decision.reasons
+                    + (
+                        "The user denied the original action and redirected you: "
+                        f"{approval.redirect}. Do not retry the original action; "
+                        "re-plan using the user's instruction.",
+                    ),
                 )
             else:
                 decision = replace(

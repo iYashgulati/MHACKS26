@@ -7,11 +7,11 @@ import requests
 
 from Airlock.core.action import Action
 from Airlock.core.evaluator import Decision
-from Airlock.hook.approval import ApprovalProvider, ApprovalResolution
+from Airlock.hook.approval import ApprovalProvider, ApprovalResolution, ApprovalResult
 
 
 PHOTON_BASE = "http://localhost:8787"
-REQUEST_TIMEOUT = 140
+REQUEST_TIMEOUT = 630
 
 
 def _summarize(action: Action) -> str:
@@ -60,7 +60,7 @@ class PhotonApprovalProvider(ApprovalProvider):
         self.url = url
         self.timeout = timeout
 
-    def request(self, action: Action, decision: Decision) -> ApprovalResolution:
+    def request(self, action: Action, decision: Decision) -> ApprovalResult:
         payload = {
             "action": _summarize(action),
             "reason": f"Risk score {decision.risk}. " + "; ".join(decision.reasons),
@@ -69,13 +69,21 @@ class PhotonApprovalProvider(ApprovalProvider):
 
         try:
             response = requests.post(self.url, json=payload, timeout=self.timeout)
-            result = response.json().get("decision")
+            body = response.json()
+            result = body.get("decision")
         except Exception as error:
             print(f"Airlock could not reach Photon service: {error}", file=sys.stderr)
-            return ApprovalResolution.DENIED
+            return ApprovalResult(ApprovalResolution.DENIED)
 
         if result == "allow":
-            return ApprovalResolution.APPROVED
+            return ApprovalResult(ApprovalResolution.APPROVED)
         if result == "expired":
-            return ApprovalResolution.EXPIRED
-        return ApprovalResolution.DENIED
+            return ApprovalResult(ApprovalResolution.EXPIRED)
+
+        redirect = body.get("redirect")
+        if isinstance(redirect, str) and redirect.strip():
+            return ApprovalResult(
+                ApprovalResolution.REDIRECTED,
+                redirect=redirect.strip()[:1000],
+            )
+        return ApprovalResult(ApprovalResolution.DENIED)
