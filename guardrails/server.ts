@@ -150,7 +150,32 @@ Bun.serve({
       }
       return Response.json({ ok: true });
     }
+        if (url.pathname === "/completion" && req.method === "POST") {
+      const body = await req.json() as {
+        cwd: string;
+        assistantMessage: string;
+        significance: string;
+        reasons: string[];
+        added: number;
+        removed: number;
+        files: string[];
+        diffstat: string;
+        error?: string;
+      };
 
+      if (activeSpace) {
+        if (body.error) {
+          await activeSpace.send(`Stopped with an error.\n\n${body.error}`);
+        } else {
+          const short = await summarize(body.assistantMessage);
+          const head = body.significance === "routine" ? "Done." : "Done — worth a look.";
+          const stat = body.diffstat ? `\n${body.diffstat}` : "";
+          const why = body.reasons?.length ? `\n\nFlagged: ${body.reasons.join("; ")}` : "";
+          await activeSpace.send(`${head}\n\n${short}${stat}${why}`);
+        }
+      }
+      return Response.json({ ok: true });
+    } 
     if (url.pathname !== "/approval" || req.method !== "POST") {
       return new Response("not found", { status: 404 });
     }
@@ -213,6 +238,22 @@ Bun.serve({
 
 console.log("api on :8787");
 
+async function summarize(text: string) {
+  try {
+    const res = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 120,
+      system:
+        "Summarize what a coding agent just finished, for a phone notification. " +
+        "One or two sentences, plain language, concrete about what changed. No preamble.",
+      messages: [{ role: "user", content: text }],
+    });
+    const block = res.content?.[0];
+    return block && block.type === "text" ? block.text : text.slice(0, 300);
+  } catch {
+    return text.slice(0, 300);
+  }
+}
 async function classifyReply(text: string, p: Pending): Promise<ReplyIntent> {
   const obvious = classifyObviousReply(text);
   if (obvious) return obvious;

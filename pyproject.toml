@@ -14,6 +14,10 @@ dependencies = [
 
 [project.scripts]
 airlock = "Airlock.hook.hook:main"
+airlock-done = "Airlock.hook.completion:main"
 
 [tool.setuptools.packages.find]
 include = ["Airlock*"]
+
+[tool.setuptools.package-data]
+"Airlock" = ["policies/*.yaml"]
